@@ -229,6 +229,13 @@ def parse_response_input(
         msg = msg.with_content_type("json")
     else:
         raise ValueError(f"Unknown input type: {response_msg['type']}")
+       
+    if "<tool>" in response_msg["content"]:
+        msg = Message.from_author_and_content(
+            Author.new(Role.TOOL, f"functions.rag"),
+            response_msg["content"][5:],
+        )
+
     return msg
 
 

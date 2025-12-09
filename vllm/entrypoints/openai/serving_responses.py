@@ -49,7 +49,7 @@ from openai.types.responses.response_reasoning_item import (
     Content as ResponseReasoningTextContent,
 )
 from openai.types.responses.tool import Mcp, Tool
-from openai_harmony import Message as OpenAIHarmonyMessage
+from openai_harmony import Message as OpenAIHarmonyMessage, Role
 
 from vllm import envs
 from vllm.engine.protocol import EngineClient
@@ -1031,7 +1031,11 @@ class OpenAIServingResponses(OpenAIServing):
                         assert isinstance(msg, OpenAIHarmonyMessage)
                         if msg.channel != "analysis":
                             prev_msgs.append(msg)
-            messages.extend(prev_msgs)
+            prev_msgs_handle = []
+            for i in prev_msgs:
+                if i.author.role != Role.TOOL:
+                    prev_msgs_handle.append(i)
+            messages.extend(prev_msgs_handle)
         # Append the new input.
         # Responses API supports simple text inputs without chat format.
         if isinstance(request.input, str):
