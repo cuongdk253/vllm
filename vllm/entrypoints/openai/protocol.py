@@ -323,7 +323,7 @@ class ResponsesRequest(OpenAIBaseModel):
     parallel_tool_calls: bool | None = True
     previous_response_id: str | None = None
     prompt: ResponsePrompt | None = None
-    reasoning: Reasoning | None = None
+    reasoning: Reasoning | None = Reasoning(effort="medium")
     service_tier: Literal["auto", "default", "flex", "scale", "priority"] = "auto"
     store: bool | None = True
     stream: bool | None = False

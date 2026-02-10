@@ -990,6 +990,7 @@ class OpenAIServingResponses(OpenAIServing):
         prev_response: ResponsesResponse | None,
     ) -> list[OpenAIHarmonyMessage]:
         messages: list[OpenAIHarmonyMessage] = []
+        prev_msgs = []
         if prev_response is None:
             # New conversation.
             tool_types = extract_tool_types(request.tools)
@@ -1031,11 +1032,6 @@ class OpenAIServingResponses(OpenAIServing):
                         assert isinstance(msg, OpenAIHarmonyMessage)
                         if msg.channel != "analysis":
                             prev_msgs.append(msg)
-            prev_msgs_handle = []
-            for i in prev_msgs:
-                if i.author.role != Role.TOOL:
-                    prev_msgs_handle.append(i)
-            messages.extend(prev_msgs_handle)
         # Append the new input.
         # Responses API supports simple text inputs without chat format.
         if isinstance(request.input, str):
@@ -1053,7 +1049,42 @@ class OpenAIServingResponses(OpenAIServing):
                 # parsing the tool call output.
                 if isinstance(response_msg, ResponseFunctionToolCall):
                     prev_outputs.append(response_msg)
-        return messages
+        # Handle previous message
+        
+        def get_first(msgs, role):
+            return next(
+                (m for m in msgs if getattr(m.author, "role", None) == role),
+                None
+            )
+            
+        messages_handle = []
+        
+        system_message = (
+            get_first(messages, Role.SYSTEM)
+            or get_first(prev_msgs, Role.SYSTEM)
+        )
+        
+        if system_message:
+            messages_handle.append(system_message)
+
+        developer_message = (
+            get_first(messages, Role.DEVELOPER)
+            or get_first(prev_msgs, Role.DEVELOPER)
+        )
+        if developer_message:
+            messages_handle.append(developer_message)
+
+        messages_handle.extend(
+            m for m in prev_msgs
+            if getattr(m.author, "role", None) in (Role.USER, Role.ASSISTANT)
+        )
+
+        messages_handle.extend(
+            m for m in messages
+            if getattr(m.author, "role", None) in (Role.USER, Role.ASSISTANT)
+        )
+        
+        return messages_handle
 
     async def _run_background_request_stream(
         self,

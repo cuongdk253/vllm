@@ -431,6 +431,26 @@ def _parse_final_message(message: Message) -> ResponseOutputItem:
     )
 
 
+def _parse_final_no_reason_message(message: Message) -> ResponseOutputItem:
+    """Parse final without messages into output message items."""
+    contents = []
+    for content in message.content:
+        output_text = ResponseOutputText(
+            text=content.text,
+            annotations=[],  # TODO
+            type="output_text",
+            logprobs=None,  # TODO
+        )
+        contents.append(output_text)
+    return ResponseOutputMessage(
+        id=f"msg_{random_uuid()}",
+        content=contents,
+        role=message.author.role,
+        status="completed",
+        type="message",
+    )
+
+
 def _parse_mcp_recipient(recipient: str) -> tuple[str, str]:
     """
     Parse MCP recipient into (server_label, tool_name).
@@ -512,6 +532,9 @@ def parse_output_message(message: Message) -> list[ResponseOutputItem]:
 
     elif message.channel == "final":
         output_items.append(_parse_final_message(message))
+        
+    elif message.channel == None:
+        output_items.append(_parse_final_no_reason_message(message))
 
     else:
         raise ValueError(f"Unknown channel: {message.channel}")
